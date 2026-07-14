@@ -18,6 +18,7 @@
   },
   "homepage": "https://github.com/Senku24/shelf-life-inventory-tracker#readme",
   "dependencies": {
+    "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.7.4"
