@@ -22,7 +22,7 @@ app.post('/signup', async (req, res) => {
     }
 
     const newUser = await userModel.create({ username, password });
-    res.status(201).json({ message: "User created successfully", user: newUser });
+    res.status(201).json({ message: "User created successfully"});
 });
 app.post('/signin', async (req, res) => {
     const { username, password } = req.body;
@@ -38,13 +38,14 @@ app.post('/household', authmiddleware, async (req, res) => {
     const userId = req.userId;
 
     const newHousehold = await householdModel.create({
-        name: req.body.name,
+        householdName: req.body.householdName,
         inviteCode: req.body.inviteCode,
         members: [userId]
     })
     res.status(201).json({ message: "Household created successfully", household: newHousehold._id });
+    await userModel.updateOne({_id: userId}, { $set: { householdId: newHousehold._id } });
 });
-app.post('/household/join', authmiddleware, async (req, res) => {
+app.post('/household/join', authmiddleware, async (req, res) => { // bug: need unique invite code for each household
     const userId = req.userId;
     const inviteCode = req.body.inviteCode;
 
@@ -52,14 +53,15 @@ app.post('/household/join', authmiddleware, async (req, res) => {
     if(!house) {
         return res.status(404).json({ message: "Household not found" });
     }
-    if(house.members.includes(userId)) {
+    const isMember = house.members.some(member => member.equals(userId));
+    if(isMember) {
         return res.status(400).json({ message: "User already a member of this household" });
     }
     const addmember = await householdModel.updateOne({_id: house._id}, { $addToSet: { members: userId } });
-    const updateUser = await userModel.updateMany({_id: userId}, { $set: { householdId: house._id } });
+    const updateUser = await userModel.findByIdAndUpdate(userId, { $set: { householdId: house._id } });
     res.status(200).json({ message: "Joined household successfully" });
 });
-app.post('/item', authmiddleware, async (req, res) => {
+app.post('/item', authmiddleware, async (req, res) => { //bug: if same item is being added by same user with same details it needs to update count not make a new entery.
     const userId = req.userId;
     const { itemName, expirationDate, quantity, category } = req.body;
     const user = await userModel.findById(userId).select("householdId");
@@ -73,12 +75,12 @@ app.post('/item', authmiddleware, async (req, res) => {
 // read endpoints
 app.get('/household', authmiddleware, async (req, res) => { 
     const userId = req.userId;
-    const username= await userModel.findOne({_id: userId}).select('username');
+    const user = await userModel.findById(userId).select("householdId");
 
-    if(!username.householdId) {
+    if(!user.householdId) {
         return res.status(404).json({ message: "User is not a member of any household" });
     }
-    const household = await householdModel.findById(username.householdId).populate('members', 'username');
+    const household = await householdModel.findById(user.householdId).populate('members', 'username');
     res.status(200).json({ message: "Household details retrieved successfully-", household });
 });
 app.get('/item', authmiddleware, async (req, res) => {
@@ -110,7 +112,7 @@ app.put('/item/:id', authmiddleware, async (req, res) => {
     res.status(200).json({ message: "Item updated successfully", item });
 })
 // delete endpoints
-app.delete('/item/:id', authmiddleware, async (req, res) => {})
+app.delete('/item/:id', authmiddleware, async (req, res) => {
     const userId = req.userId;
     const itemId = req.params.id;
     const user = await userModel.findById(userId).select("householdId");
@@ -122,6 +124,7 @@ app.delete('/item/:id', authmiddleware, async (req, res) => {})
         return res.status(404).json({ message: "Item not found" });
     }
     res.status(200).json({ message: "Item deleted successfully", item });
+});
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
