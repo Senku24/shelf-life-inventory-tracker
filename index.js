@@ -59,10 +59,69 @@ app.post('/household/join', authmiddleware, async (req, res) => {
     const updateUser = await userModel.updateMany({_id: userId}, { $set: { householdId: house._id } });
     res.status(200).json({ message: "Joined household successfully" });
 });
-// read endpoints
-// update endpoints
-// delete endpoints
+app.post('/item', authmiddleware, async (req, res) => {
+    const userId = req.userId;
+    const { itemName, expirationDate, quantity, category } = req.body;
+    const user = await userModel.findById(userId).select("householdId");
+    if(!user.householdId){
+        return res.status(403).json({ message: "User is not a member of any household" });
 
+    }
+    const items = await itemModel.create({ itemName, expirationDate, quantity, category, householdId: user.householdId, addedBy: userId });
+    res.status(201).json({ message: "Item created successfully", item: items });
+});
+// read endpoints
+app.get('/household', authmiddleware, async (req, res) => { 
+    const userId = req.userId;
+    const username= await userModel.findOne({_id: userId}).select('username');
+
+    if(!username.householdId) {
+        return res.status(404).json({ message: "User is not a member of any household" });
+    }
+    const household = await householdModel.findById(username.householdId).populate('members', 'username');
+    res.status(200).json({ message: "Household details retrieved successfully-", household });
+});
+app.get('/item', authmiddleware, async (req, res) => {
+    const userId = req.userId;
+    const user = await userModel.findById(userId).select("householdId");
+    if(!user.householdId){
+        return res.status(403).json({ message: "User is not a member of any household" });
+    }
+    const items = await itemModel.find({ householdId: user.householdId });
+    res.status(200).json({ message: "Items retrieved successfully", items });
+})
+
+// update endpoints
+app.put('/item/:id', authmiddleware, async (req, res) => {
+    const userId = req.userId;
+    const itemId = req.params.id;
+    const { itemName, expirationDate, quantity, category } = req.body;
+    const user = await userModel.findById(userId).select("householdId");
+    if(!user.householdId){
+        return res.status(403).json({ message: "User is not a member of any household" });
+    }
+    const item = await itemModel.findOneAndUpdate({ _id: itemId, householdId: user.householdId }, 
+        { itemName, expirationDate, quantity, category }, 
+        { new: true }
+    );
+    if(!item) {
+        return res.status(404).json({ message: "Item not found" });
+    }
+    res.status(200).json({ message: "Item updated successfully", item });
+})
+// delete endpoints
+app.delete('/item/:id', authmiddleware, async (req, res) => {})
+    const userId = req.userId;
+    const itemId = req.params.id;
+    const user = await userModel.findById(userId).select("householdId");
+    if(!user.householdId){
+        return res.status(403).json({ message: "User is not a member of any household" });
+    }
+    const item = await itemModel.findOneAndDelete({ _id: itemId, householdId: user.householdId });
+    if(!item) {
+        return res.status(404).json({ message: "Item not found" });
+    }
+    res.status(200).json({ message: "Item deleted successfully", item });
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);

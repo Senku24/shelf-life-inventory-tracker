@@ -8,7 +8,9 @@ const userSchema = new mongoose.Schema({
   username: {
     type: String, required: true},
 password: {
-    type: String, required: true}
+    type: String, required: true},
+    householdId: {
+    type: mongoose.Schema.Types.ObjectId, ref: 'household'}
 });
 const userModel = mongoose.model('user', userSchema);
 
@@ -31,7 +33,11 @@ const itemSchema = new mongoose.Schema({
   quantity: {
     type: Number, required: true},
     category: {
-    type: String, required: true}
+    type: String, required: true},
+    addedBy: {
+    type: mongoose.Schema.Types.ObjectId, ref: 'user'},
+    householdId: {
+    type: mongoose.Schema.Types.ObjectId, ref: 'household'}
 });
 const itemModel = mongoose.model('item', itemSchema);
 
