@@ -4,6 +4,11 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js",
+    "client": "npm --prefix client run dev",
+    "client:install": "npm --prefix client install",
+    "digest": "node -e \"require('dotenv').config();require('mongoose').connect(process.env.MONGOOSE_URI).then(()=>require('./notifications').sendDailyDigests()).then(n=>{console.log('digests sent:',n);process.exit(0)})\"",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -18,9 +23,13 @@
   },
   "homepage": "https://github.com/Senku24/shelf-life-inventory-tracker#readme",
   "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
-    "mongoose": "^9.7.4"
+    "mongoose": "^9.7.4",
+    "node-cron": "^4.6.0",
+    "nodemailer": "^9.0.3"
   }
 }

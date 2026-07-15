@@ -3,23 +3,24 @@ const dotenv = require("dotenv");
 
 dotenv.config();
 
-async function authmiddleware(req, res, next) {
-    const token = req.headers.token;
+function authmiddleware(req, res, next) {
+    const header = req.headers.authorization || "";
+    const token = header.startsWith("Bearer ") ? header.slice(7) : req.headers.token;
 
-    if(!token) {
-        return res.status(401).json({ message: "not logged in!" });
+    if (!token) {
+        return res.status(401).json({ message: "Not logged in" });
     }
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const userId = decoded.userId;
-    if(!userId){
-            res.status(403).json({
-                message: "incorrect token"
-            })
-            return;
-        }
-    req.userId = userId;
 
-    next();
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        if (!decoded.userId) {
+            return res.status(401).json({ message: "Invalid token" });
+        }
+        req.userId = decoded.userId;
+        next();
+    } catch (err) {
+        return res.status(401).json({ message: "Invalid or expired token" });
+    }
 }
 
 module.exports = authmiddleware;
